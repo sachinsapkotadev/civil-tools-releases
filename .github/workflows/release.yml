@@ -1,0 +1,40 @@
+name: Create GitHub Release
+
+on:
+  push:
+    paths:
+      - "releases/**/*.apk"
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from RELEASE.env
+        id: version
+        run: |
+          . RELEASE.env
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+
+      - name: Find APK path
+        id: apk
+        run: |
+          APK=$(find releases -name "*.apk" -type f | sort -V | tail -1)
+          echo "path=$APK" >> $GITHUB_OUTPUT
+          echo "name=$(basename "$APK")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Civil Tools v${{ steps.version.outputs.version }}"
+          body_path: CHANGELOG.md
+          files: ${{ steps.apk.outputs.path }}
+          fail_on_unmatched_files: true
